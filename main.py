@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 import altair as alt
 import os
@@ -27,48 +26,24 @@ for col in ["Ruler (or Issuer)", "Reign", "Metal", "Mint", "Date of Issue"]:
 for col in ["Weight (g)", "Dimension (mm)"]:
     df[col].fillna(0, inplace=True)
 
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.express as px
-import altair as alt
-import os
-import re
-
-# -------------------------------------
-# 1) CONFIGURATION & DATA LOADING
-# -------------------------------------
-CSV_PATH = "coins.csv"
-IMAGES_FOLDER = "Muslim Conquerors"
-
-# Load dataset
-df = pd.read_csv(CSV_PATH)
-
-# Convert numerical columns properly
-df["Weight (g)"] = pd.to_numeric(df["Weight (g)"], errors="coerce")
-df["Dimension (mm)"] = pd.to_numeric(df["Dimension (mm)"], errors="coerce")
-
-
 # -------------------------------------
 # 2) IMAGE MATCHING FUNCTION
 # -------------------------------------
 images_dict = {}
-pattern = re.compile(r"(\d+\.\d+)[_\s-]*.*\.png$", re.IGNORECASE)  # Matches "10.1 Fakruddin Mubarak Shah .png" (more flexible)
+pattern = re.compile(r"(\d+\.\d+)[_\s-]*.*\.png$", re.IGNORECASE)  # Matches "10.1 Fakruddin Mubarak Shah .png"
 
 for filename in os.listdir(IMAGES_FOLDER):
     match = pattern.match(filename)
-    if not match:
-        continue
-
-    coin_no = match.group(1)  # Extract "10.1"
-    if coin_no not in images_dict:
-        images_dict[coin_no] = {"front": None, "back": None}
-
-    lower_name = filename.lower()
-    if " re " in lower_name or lower_name.endswith(" re.png") or " re." in lower_name:
-        images_dict[coin_no]["back"] = os.path.join(IMAGES_FOLDER, filename)
-    else:
-        images_dict[coin_no]["front"] = os.path.join(IMAGES_FOLDER, filename)
+    if match:
+        coin_no = match.group(1)  # Extract "10.1"
+        if coin_no not in images_dict:
+            images_dict[coin_no] = {"front": None, "back": None}
+        
+        lower_name = filename.lower()
+        if " re " in lower_name or lower_name.endswith(" re.png") or " re." in lower_name:
+            images_dict[coin_no]["back"] = os.path.join(IMAGES_FOLDER, filename)
+        else:
+            images_dict[coin_no]["front"] = os.path.join(IMAGES_FOLDER, filename)
 
 # -------------------------------------
 # 3) STREAMLIT UI
@@ -148,13 +123,11 @@ for idx, row in filtered_df.iterrows():
         if front_path and os.path.exists(front_path):
             st.image(front_path, caption=f"{coin_no} (Front)", use_column_width=True)
         else:
-            st.warning(f"Front image not found at path: {front_path}")
+            st.warning("Front image not found.")
     with col2:
         if back_path and os.path.exists(back_path):
             st.image(back_path, caption=f"{coin_no} (Back)", use_column_width=True)
         else:
-            st.warning(f"Back image not found at path: {back_path}")
+            st.warning("Back image not found.")
 
     st.markdown("---")
-
-# End of script
