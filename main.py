@@ -17,8 +17,8 @@ def landing_page():
     image_paths = [
         "Muslim Conquerors/9.2 Giasuddin Bahadur Ghazi re .png",
         "Muslim Conquerors/29.5 Shamsuddin Firuz Shah re .png",
+        "Muslim Conquerors/1.1 Ikhtiyar Khilji .png",
         "Muslim Conquerors/2.1 Ali Mardan re .png",
-        "Muslim Conquerors/1.1 Ikhtiyar Khilji re .png",
         "Muslim Conquerors/22.6 Ruknuddin Barbak Shah .png"
     ]
 
