@@ -13,11 +13,11 @@ def configure_app():
     warnings.filterwarnings("ignore")
 
 #Landing Page
-def landing_page():
+def landing_page(df=None, images_dict=None):
     image_paths = [
         "Muslim Conquerors/9.2 Giasuddin Bahadur Ghazi re .png",
         "Muslim Conquerors/29.5 Shamsuddin Firuz Shah re .png",
-        "Muslim Conquerors/1.1 Ikhtiyar Khilji .png",
+        "Muslim Conquerors/1.1 Ikhtiyar Khilji re .png",
         "Muslim Conquerors/2.1 Ali Mardan re .png",
         "Muslim Conquerors/22.6 Ruknuddin Barbak Shah .png"
     ]
@@ -31,7 +31,7 @@ def landing_page():
                 st.error(f"Image not found at: {path}")
     st.markdown("<h2 style='text-align: center;'>Engineer Noorul Islam, Proprietor of the actual museum and the private dataset <br>Athoye Mahmud, Developer<br>Tahmina Muha Armin, Developer</h2>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
-    #st.markdown("-")
+    st.markdown("---")
     
 #Load and preprocess data
 @st.cache_data
@@ -145,26 +145,43 @@ def sidebar_filters(df):
     return None
 
 #Display data
-def display_data(df):
+def display_data(df, images_dict):
     st.subheader("📜 Coin Database")
-    if df is not None:
-        st.dataframe(df)
-    else:
-        st.warning("No data to display.")
+    st.dataframe(df, use_container_width=True)
+    st.markdown("---")
 
 #Visualizations
-def display_visualizations(df):
+def display_visualizations(df, images_dict):
     st.subheader("📊 Coin Data Insights")
+
     if df is not None and not df.empty:
-        
+
         # Filter out rows where "Weight (g)" is zero or NaN
         df_filtered = df[df["Weight (g)"].notna() & (df["Weight (g)"] != 0)]
         fig1 = px.histogram(df_filtered, x="Weight (g)", nbins=20, title="Distribution of Coin Weights", marginal="rug")
+
+        # Make titles and axis labels bolder
+        fig1.update_layout(
+            title_font=dict(size=24),
+            xaxis_title="Weight (g)",
+            yaxis_title="Count",
+            xaxis_title_font=dict(size=18),
+            yaxis_title_font=dict(size=18)
+        )
         st.plotly_chart(fig1, use_container_width=True)
 
         fig2 = px.scatter(
             df, x="Weight (g)", y="Dimension (mm)", color="Metal",
             size="Weight (g)", hover_data=["Ruler (or Issuer)"], title="Coin Weight vs. Dimension"
+        )
+
+        # Make titles and axis labels bolder
+        fig2.update_layout(
+            title_font=dict(size=24),
+            xaxis_title="Weight (g)",
+            yaxis_title="Dimension (mm)",
+            xaxis_title_font=dict(size=18),
+            yaxis_title_font=dict(size=18)
         )
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -173,8 +190,20 @@ def display_visualizations(df):
             y=alt.Y("count()", title="Count"),
             color="Metal"
         ).properties(title="Metal Type Distribution")
+
+        # Make titles and axis labels bolder
+        alt_chart = alt_chart.configure_title(
+            fontSize=24,
+            font="Arial",
+            color="black"
+        ).configure_axis(
+            labelFontSize=18,
+            titleFontSize=18,
+            titleFont="Arial",
+            titleColor="black"
+        )
         st.altair_chart(alt_chart, use_container_width=True)
-        
+
         # Count number of coins per ruler
         ruler_counts = df["Ruler (or Issuer)"].value_counts().reset_index()
         ruler_counts.columns = ["Ruler (or Issuer)", "Coin Count"]
@@ -188,7 +217,15 @@ def display_visualizations(df):
             labels={"Coin Count": "Number of Coins", "Ruler (or Issuer)": "Ruler"},
             text_auto=True
         )
+
         # Improve appearance
+        fig3.update_layout(
+            title_font=dict(size=24),
+            xaxis_title="Number of Coins",
+            yaxis_title="Ruler",
+            xaxis_title_font=dict(size=18),
+            yaxis_title_font=dict(size=18)
+        )
         fig3.update_layout(yaxis=dict(categoryorder="total ascending"), xaxis=dict(showgrid=True))
         # Show plot in Streamlit
         st.plotly_chart(fig3)  # Use Streamlit to display the plot
@@ -203,7 +240,7 @@ def display_coins_with_images(df, images_dict):
         for idx, row in df.iterrows():
             coin_no = str(row["Coin No."])
             st.markdown(f"### Coin No. {coin_no}")
-            st.write(f"**Ruler:** {row['Ruler (or Issuer)']}")
+            st.markdown(f"<h2 style='font-size:24px; font-weight:bold;'>Ruler: {row['Ruler (or Issuer)']}</h2>", unsafe_allow_html=True)
             st.write(f"**Reign:** {row['Reign']}")
             st.write(f"**Metal:** {row['Metal']}")
             st.write(f"**Weight (g):** {row['Weight (g)']}")
@@ -233,13 +270,28 @@ def display_coins_with_images(df, images_dict):
 def main():
     configure_app()
     st.title("🪙 Digital Coin Museum", anchor="center")
-    landing_page()
+
+    # Navigation
+    pages = {
+        "Home": landing_page,
+        "Data": display_data,
+        "Visualizations": display_visualizations,
+        "Coin Catalog": display_coins_with_images
+    }
+
+    st.sidebar.title("🧭 Navigation")
+    selection = st.sidebar.radio("⤵️ Go to", list(pages.keys()))
+
+    # Load data and images
     df = load_data("coins.csv")
     images_dict = match_images("Muslim Conquerors")
     filtered_df = sidebar_filters(df)
-    display_data(filtered_df)
-    display_visualizations(filtered_df)
-    display_coins_with_images(filtered_df, images_dict)
+
+    # Display selected page
+    if selection == "Home":
+        pages[selection]()
+    else:
+        pages[selection](filtered_df, images_dict)
 
 if __name__ == "__main__":
     main()
