@@ -6,34 +6,34 @@ import os
 import re
 import warnings
 
-# --- Configuration ---
+#Verbose Error Configuration
 def configure_app():
     st.set_page_config(page_title="Coins of Bengal", layout="wide")
     st.set_option('client.showErrorDetails', False)
     warnings.filterwarnings("ignore")
 
-# --- Landing Page ---
+#Landing Page
 def landing_page():
     image_paths = [
-        "Muslim Conquerors/9.2 Giasuddin Bahadur Ghazi re .jpg",
-        "Muslim Conquerors/29.5 Shamsuddin Firuz Shah re .jpg",
-        "Muslim Conquerors/2.1 Ali Mardan re .jpg",
-        "Muslim Conquerors/1.1 Ikhtiyar Khilji re .jpg",
-        "Muslim Conquerors/22.6 Ruknuddin Barbak Shah .jpg"
+        "Muslim Conquerors/9.2 Giasuddin Bahadur Ghazi re .png",
+        "Muslim Conquerors/29.5 Shamsuddin Firuz Shah re .png",
+        "Muslim Conquerors/2.1 Ali Mardan re .png",
+        "Muslim Conquerors/1.1 Ikhtiyar Khilji re .png",
+        "Muslim Conquerors/22.6 Ruknuddin Barbak Shah .png"
     ]
 
     cols = st.columns(len(image_paths))
     for i, path in enumerate(image_paths):
         with cols[i]:
             try:
-                st.image(path, use_column_width=True)
+                st.image(path, use_container_width=True)
             except FileNotFoundError:
                 st.error(f"Image not found at: {path}")
     st.markdown("<h2 style='text-align: center;'>Engineer Noorul Islam, Proprietor of the actual museum and the private dataset <br>Athoye Mahmud, Developer<br>Tahmina Muha Armin, Developer</h2>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
     #st.markdown("-")
     
-# --- Load and preprocess data ---
+#Load and preprocess data
 @st.cache_data
 def load_data(csv_path):
     try:
@@ -54,19 +54,29 @@ def load_data(csv_path):
             df[col].fillna("Unknown", inplace=True)
         for col in ["Weight (g)", "Dimension (mm)"]:
             df[col].fillna(0, inplace=True)
+
+        # Function to convert Arabic calendar years to Gregorian
+        def convert_to_gregorian(year):
+            if year < 1202:
+                return year + 622  # Approximate conversion
+            return year
+
+        # Apply the conversion to the "Date of Issue" column
+        df['Date of Issue'] = df['Date of Issue'].apply(lambda x: convert_to_gregorian(int(x)) if str(x).isdigit() else x)
+
         return df
     except FileNotFoundError:
             st.error(f"Error: CSV file not found at: {csv_path}")
             return None
 
-# --- Image matching ---
+#Image matching
 def match_images(images_folder):
     images_dict = {}
     if not os.path.exists(images_folder):
         st.error(f"Error: Image folder not found at: {images_folder}")
         return images_dict
     
-    pattern = re.compile(r"(\d+\.\d+)[_\s-]*.*\.jpg$", re.IGNORECASE)
+    pattern = re.compile(r"(\d+\.\d+)[_\s-]*.*\.png$", re.IGNORECASE)
     for filename in os.listdir(images_folder):
         match = pattern.match(filename)
         if match:
@@ -74,28 +84,67 @@ def match_images(images_folder):
             if coin_no not in images_dict:
                 images_dict[coin_no] = {"front": None, "back": None}
             lower_name = filename.lower()
-            if " re " in lower_name or lower_name.endswith(" re.jpg") or " re." in lower_name:
+            if " re " in lower_name or lower_name.endswith(" re.png") or " re." in lower_name:
                 images_dict[coin_no]["back"] = os.path.join(images_folder, filename)
             else:
                 images_dict[coin_no]["front"] = os.path.join(images_folder, filename)
     return images_dict
 
-# --- Sidebar filters ---
 def sidebar_filters(df):
     st.sidebar.header("🔍 Filter Coins")
+    
     if df is not None:
+        # Ruler filter with a dropdown
         selected_ruler = st.sidebar.selectbox("Select Ruler", ["All"] + sorted(df["Ruler (or Issuer)"].unique()))
-        selected_metal = st.sidebar.selectbox("Select Metal", ["All"] + sorted(df["Metal"].unique()))
+        
+        # Metal filter with multiselect
+        selected_metals = st.sidebar.multiselect("Select Metal", options=["All"] + sorted(df["Metal"].unique()), default=["All"])
+        
+        # Improved Reign filter with a range slider
+        reigns = sorted(df["Reign"].unique())
+        if reigns:
+            # Extract years from reign strings
+            years = [int(y.split('–')[0]) for y in reigns if '–' in y]
+            if years:
+                min_year = min(years)
+                max_year = max(years)
+                selected_years = st.sidebar.slider(
+                    "Select Reign Years",
+                    min_value=min_year,
+                    max_value=max_year,
+                    value=(min_year, max_year)
+                )
+        
+        # Weight filter with a slider
+        weight_range = st.sidebar.slider(
+            "Select Weight Range (g)",
+            min_value=float(df["Weight (g)"].min()),
+            max_value=float(df["Weight (g)"].max()),
+            value=(0.0, float(df["Weight (g)"].max()))
+        )
+        
+        # Apply filters
         filtered_df = df.copy()
+        
         if selected_ruler != "All":
             filtered_df = filtered_df[filtered_df["Ruler (or Issuer)"] == selected_ruler]
-        if selected_metal != "All":
-            filtered_df = filtered_df[filtered_df["Metal"] == selected_metal]
+        
+        if "All" not in selected_metals:
+            filtered_df = filtered_df[filtered_df["Metal"].isin(selected_metals)]
+        
+        # Apply reign filter
+        if reigns and years:
+            filtered_df = filtered_df[
+                filtered_df["Reign"].apply(
+                    lambda x: selected_years[0] <= int(x.split('–')[0]) <= selected_years[1]
+                )
+            ]
+
+        filtered_df = filtered_df[(filtered_df["Weight (g)"] >= weight_range[0]) & (filtered_df["Weight (g)"] <= weight_range[1])]
         return filtered_df
     return None
 
-
-# --- Display data ---
+#Display data
 def display_data(df):
     st.subheader("📜 Coin Database")
     if df is not None:
@@ -103,11 +152,14 @@ def display_data(df):
     else:
         st.warning("No data to display.")
 
-# --- Visualizations ---
+#Visualizations
 def display_visualizations(df):
     st.subheader("📊 Coin Data Insights")
     if df is not None and not df.empty:
-        fig1 = px.histogram(df, x="Weight (g)", nbins=20, title="Distribution of Coin Weights", marginal="rug")
+        
+        # Filter out rows where "Weight (g)" is zero or NaN
+        df_filtered = df[df["Weight (g)"].notna() & (df["Weight (g)"] != 0)]
+        fig1 = px.histogram(df_filtered, x="Weight (g)", nbins=20, title="Distribution of Coin Weights", marginal="rug")
         st.plotly_chart(fig1, use_container_width=True)
 
         fig2 = px.scatter(
@@ -123,26 +175,6 @@ def display_visualizations(df):
         ).properties(title="Metal Type Distribution")
         st.altair_chart(alt_chart, use_container_width=True)
         
-        # Convert "Date of Issue" to numeric (for proper plotting)
-        df["Date of Issue"] = pd.to_numeric(df["Date of Issue"], errors="coerce")
-        # Group by "Date of Issue" to count the number of coins issued per year
-        coin_timeline = df.groupby("Date of Issue").size().reset_index(name="Coin Count")
-        # Plot using Plotly
-        fig2 = px.line(
-            coin_timeline,
-            x="Date of Issue",
-            y="Coin Count",
-            markers=True,
-            title="📆 Coin Issuance Timeline",
-            labels={"Date of Issue": "Year", "Coin Count": "Number of Coins Issued"},
-            line_shape="linear"
-        )
-        # Enhance appearance
-        fig2.update_traces(line=dict(width=3))
-        fig2.update_layout(xaxis=dict(showgrid=True), yaxis=dict(showgrid=True))
-        # Show plot in Streamlit
-        st.plotly_chart(fig2)  # Use Streamlit to display the plot
-
         # Count number of coins per ruler
         ruler_counts = df["Ruler (or Issuer)"].value_counts().reset_index()
         ruler_counts.columns = ["Ruler (or Issuer)", "Coin Count"]
@@ -164,7 +196,7 @@ def display_visualizations(df):
     else:
         st.warning("No data to create visualizations")
 
-# --- Display coins with images ---
+#Display coins with images
 def display_coins_with_images(df, images_dict):
     st.subheader("🖼️ Coin Details with Images")
     if df is not None and not df.empty:
@@ -185,20 +217,19 @@ def display_coins_with_images(df, images_dict):
             col1, col2 = st.columns(2)
             with col1:
                 if front_path and os.path.exists(front_path):
-                    st.image(front_path, caption=f"{coin_no} (Front)", use_column_width=True)
+                    st.image(front_path, caption=f"{coin_no} (Front)", use_container_width=True)
                 else:
                     st.warning("Front image not found.")
             with col2:
                 if back_path and os.path.exists(back_path):
-                    st.image(back_path, caption=f"{coin_no} (Back)", use_column_width=True)
+                    st.image(back_path, caption=f"{coin_no} (Back)", use_container_width=True)
                 else:
                     st.warning("Back image not found.")
             st.markdown("---")
     else:
         st.warning("No coins to display.")
 
-
-# --- Main function ---
+#Main function
 def main():
     configure_app()
     st.title("🪙 Digital Coin Museum", anchor="center")
@@ -209,7 +240,6 @@ def main():
     display_data(filtered_df)
     display_visualizations(filtered_df)
     display_coins_with_images(filtered_df, images_dict)
-
 
 if __name__ == "__main__":
     main()
