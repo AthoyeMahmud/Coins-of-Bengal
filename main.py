@@ -4,6 +4,13 @@ import plotly.express as px
 import altair as alt
 import os
 import re
+import warnings
+
+# 🔹 Suppress detailed errors from appearing in UI
+st.set_option('client.showErrorDetails', False)
+
+# 🔹 Suppress warnings
+warnings.filterwarnings("ignore")
 
 # Load dataset
 CSV_PATH = "coins.csv"
@@ -21,7 +28,7 @@ for col in ["Weight (g)", "Dimension (mm)"]:
 
 # Image Matching
 images_dict = {}
-pattern = re.compile(r"(\d+\.\d+)[_\s-]*.*\.png$", re.IGNORECASE)
+pattern = re.compile(r"(\d+\.\d+)[_\s-]*.*\.jpg$", re.IGNORECASE)
 
 for filename in os.listdir(IMAGES_FOLDER):
     match = pattern.match(filename)
@@ -30,7 +37,7 @@ for filename in os.listdir(IMAGES_FOLDER):
         if coin_no not in images_dict:
             images_dict[coin_no] = {"front": None, "back": None}
         lower_name = filename.lower()
-        if " re " in lower_name or lower_name.endswith(" re.png") or " re." in lower_name:
+        if " re " in lower_name or lower_name.endswith(" re.jpg") or " re." in lower_name:
             images_dict[coin_no]["back"] = os.path.join(IMAGES_FOLDER, filename)
         else:
             images_dict[coin_no]["front"] = os.path.join(IMAGES_FOLDER, filename)
