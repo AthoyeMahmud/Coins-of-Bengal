@@ -269,7 +269,7 @@ def display_coins_with_images(df, images_dict):
 #Main function
 def main():
     configure_app()
-    st.title("🪙 Digital Coin Museum", anchor="center")
+    st.title("🪙 Coins of Bengal, A Digital Coin Museum", anchor="center")
 
     # Navigation
     pages = {
