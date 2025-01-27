@@ -29,7 +29,7 @@ def landing_page(df=None, images_dict=None):
                 st.image(path, use_container_width=True)
             except FileNotFoundError:
                 st.error(f"Image not found at: {path}")
-    st.markdown("<h2 style='text-align: center;'>Engineer Noorul Islam, Proprietor of the actual museum and the private dataset <br>Athoye Mahmud, Developer<br>Tahmina Muha Armin, Developer</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>Engineer Noorul Islam, Proprietor of the actual museum and the private dataset <br>Athoye Mahmud, Developer</h2>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("---")
     
