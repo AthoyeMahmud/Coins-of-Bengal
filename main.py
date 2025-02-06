@@ -30,6 +30,7 @@ def landing_page(df=None, images_dict=None):
             except FileNotFoundError:
                 st.error(f"Image not found at: {path}")
     st.markdown("<h2 style='text-align: center;'>Engineer Noorul Islam,<br>Proprietor of the actual museum and the private dataset</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>Dr. Md. Ataur Rahman,<br>Researcher and Archaeologist</h2>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>Athoye Mahmud,<br>Developer</h2>", unsafe_allow_html=True)
     st.markdown("---")
     
