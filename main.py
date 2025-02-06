@@ -39,11 +39,20 @@ def landing_page(df=None, images_dict=None):
                 bottom: 0;
                 left: 0;
                 width: 100%;
-                background-color: white; /* Change as needed */
+                background-color: gold; /* Gold background */
                 text-align: center;
-                padding: 10px;
-                font-size: 14px;
-                box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+                padding: 5px; /* Less padding */
+                font-size: 14px; /* Medium font size */
+                font-weight: bold;
+                color: black; /* Readability */
+                box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+            }
+    
+            .footer small {
+                font-size: 14px; /* Override <small> default */
+                padding: 0; /* Remove extra padding */
+                margin: 0; /* Ensure no unwanted space */
+                display: inline-block; /* Align properly */
             }
         </style>
     
@@ -51,6 +60,7 @@ def landing_page(df=None, images_dict=None):
             <small>©️ Published January 2025. All rights reserved.</small>
         </div>
     """, unsafe_allow_html=True)
+
     st.markdown("---")
     
 #Load and preprocess data
