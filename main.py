@@ -33,6 +33,8 @@ def landing_page(df=None, images_dict=None):
     st.markdown("<h2 style='text-align: center;'>Dr. Md. Ataur Rahman,<br>Researcher and Archaeologist</h2>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>Athoye Mahmud,<br>Developer</h2>", unsafe_allow_html=True)
     st.markdown("---")
+    st.markdown("<small>©️ Published January 2025. All rights reserved.</small>", unsafe_allow_html=True)
+    st.markdown("---")
     
 #Load and preprocess data
 @st.cache_data
