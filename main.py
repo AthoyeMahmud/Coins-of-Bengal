@@ -40,7 +40,7 @@ def landing_page(df=None, images_dict=None):
                 left: 0;
                 width: 100%;
                 background: linear-gradient(90deg, #D4AF37, #FFD700); /* Metallic gold gradient */
-                text-align: center;
+                text-align: left;
                 padding: 3px;
                 font-size: 16px;
                 font-weight: 600;
