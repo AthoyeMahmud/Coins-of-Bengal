@@ -39,23 +39,31 @@ def landing_page(df=None, images_dict=None):
                 bottom: 0;
                 left: 0;
                 width: 100%;
-                background: linear-gradient(90deg, #D4AF37, #FFD700); /* Metallic gold gradient */
-                text-align: left;
-                padding: 3px;
-                font-size: 16px;
+                background: linear-gradient(90deg, #D4AF37, #FFD700); /* Metallic Gold */
+                text-align: center; /* Default: Centered */
+                padding: 5px;
+                font-size: 14px;
                 font-weight: 600;
                 color: black;
                 box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.2);
             }
-    
+
             .footer small {
                 font-size: 14px;
                 padding: 0;
                 margin: 0;
                 display: inline-block;
             }
+
+            /* Responsive Design */
+            @media screen and (max-width: 720px) {  /* Applies when screen width <= 720px */
+                .footer {
+                    text-align: left;
+                    padding-left: 10px;
+                }
+            }
         </style>
-    
+
         <div class="footer">
             <small>©️ Published January 2025. All rights reserved.</small>
         </div>
