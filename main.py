@@ -32,7 +32,25 @@ def landing_page(df=None, images_dict=None):
     st.markdown("<h2 style='text-align: center;'>Engineer Noorul Islam,<br>Proprietor of the actual museum and the private dataset</h2>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>Dr. Md. Ataur Rahman,<br>Researcher and Archaeologist</h2>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>Athoye Mahmud,<br>Developer</h2>", unsafe_allow_html=True)
-    st.markdown("<small>©️ Published January 2025. All rights reserved.</small>", unsafe_allow_html=True)
+    st.markdown("""
+        <style>
+            .footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                background-color: white; /* Change as needed */
+                text-align: center;
+                padding: 10px;
+                font-size: 14px;
+                box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+            }
+        </style>
+    
+        <div class="footer">
+            <small>©️ Published January 2025. All rights reserved.</small>
+        </div>
+    """, unsafe_allow_html=True)
     st.markdown("---")
     
 #Load and preprocess data
