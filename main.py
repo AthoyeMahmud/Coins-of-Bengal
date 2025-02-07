@@ -5,39 +5,99 @@ import altair as alt
 import os
 import re
 import warnings
+from kaggle.api.kaggle_api_extended import KaggleApi
+from PIL import Image
 
-#Verbose Error Configuration
+# Verbose Error Suppression
 def configure_app():
     st.set_page_config(page_title="Coins of Bengal", layout="wide")
     st.set_option('client.showErrorDetails', False)
     warnings.filterwarnings("ignore")
 
-#Landing Page
-def landing_page(df=None, images_dict=None):
+# Landing Page
+def landing_page():
     image_paths = [
-        "Muslim Conquerors/9.2 Giasuddin Bahadur Ghazi re .png",
-        "Muslim Conquerors/29.5 Shamsuddin Firuz Shah re .png",
-        "Muslim Conquerors/1.1 Ikhtiyar Khilji re .png",
-        "Muslim Conquerors/2.1 Ali Mardan re .png",
-        "Muslim Conquerors/22.6 Ruknuddin Barbak Shah .png"
+        "data/Muslim Conquerors/9.2 Giasuddin Bahadur Ghazi re .webp",
+        "data/Muslim Conquerors/29.5 Shamsuddin Firuz Shah re .webp",
+        "data/Muslim Conquerors/1.1 Ikhtiyar Khilji re .webp",
+        "data/Muslim Conquerors/2.1 Ali Mardan re .webp",
+        "data/Muslim Conquerors/22.6 Ruknuddin Barbak Shah .webp"
     ]
 
     cols = st.columns(len(image_paths))
     for i, path in enumerate(image_paths):
         with cols[i]:
             try:
-                st.image(path, use_container_width=True)
+                # Optimize image loading with thumbnail and explicit format
+                img = Image.open(path)
+                img.thumbnail((500, 500))  # Resize for faster loading, adjust as needed
+                st.image(img, use_container_width=True)
             except FileNotFoundError:
                 st.error(f"Image not found at: {path}")
+            except Exception as e:
+                st.error(f"Error loading image {path}: {e}")
+
     st.markdown("<h2 style='text-align: center;'>Engineer Noorul Islam,<br>Proprietor of the actual museum and the private dataset</h2>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>Athoye Mahmud,<br>Developer</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>Dr. Md. Ataur Rahman,<br>Researcher and Archaeologist</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>Athoye Mahmud,<br>Developer and Data Science Undergrad, UIU</h2>", unsafe_allow_html=True)
+    st.markdown("""
+        <style>
+            .footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                background: linear-gradient(90deg, #D4AF37, #FFD700); /* Metallic Gold */
+                text-align: center; /* Default: Centered */
+                padding: 5px;
+                font-size: 14px;
+                font-weight: 600;
+                color: black;
+                box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.2);
+            }
+
+            .footer small {
+                font-size: 14px;
+                padding: 0;
+                margin: 0;
+                display: inline-block;
+            }
+
+            /* Responsive Design */
+            @media screen and (max-width: 720px) {  /* Applies when screen width <= 720px */
+                .footer {
+                    text-align: left;
+                    padding-left: 10px;
+                }
+            }
+        </style>
+
+        <div class="footer">
+            <small>©️ Published January 2025. All rights reserved.</small>
+        </div>
+    """, unsafe_allow_html=True)
     st.markdown("---")
-    
-#Load and preprocess data
+
+# Load and preprocess data (from Kaggle)
 @st.cache_data
-def load_data(csv_path):
+def load_data():
     try:
+        # Initialize the Kaggle API and authenticate
+        api = KaggleApi()
+        api.authenticate()
+
+        # Specify dataset and file path
+        dataset_path = 'athoye/coins-of-bengal'
+        file_name = 'coins.csv'
+        download_path = 'data'  # Local directory to store the file
+
+        # Download the file
+        api.dataset_download_file(dataset_path, file_name, path=download_path, force=False, quiet=False)
+
+        # Load the data into a pandas DataFrame
+        csv_path = os.path.join(download_path, file_name)
         df = pd.read_csv(csv_path)
+
         # Standardize column names
         df.rename(columns=lambda x: x.strip(), inplace=True)
         df.rename(columns={
@@ -57,26 +117,45 @@ def load_data(csv_path):
 
         # Function to convert Arabic calendar years to Gregorian
         def convert_to_gregorian(year):
-            if year < 1202:
-                return year + 622  # Approximate conversion
-            return year
+            try:
+                year = int(year)  # Ensure year is an integer
+                if year < 1202:
+                    return year + 622  # Approximate conversion
+                return year
+            except ValueError:
+                return "Unknown"  # Handle cases where conversion is not possible
 
         # Apply the conversion to the "Date of Issue" column
-        df['Date of Issue'] = df['Date of Issue'].apply(lambda x: convert_to_gregorian(int(x)) if str(x).isdigit() else x)
+        df['Date of Issue'] = df['Date of Issue'].apply(convert_to_gregorian)
 
         return df
-    except FileNotFoundError:
-            st.error(f"Error: CSV file not found at: {csv_path}")
-            return None
+    except Exception as e:
+        st.error(f"Error loading data from Kaggle: {e}")
+        st.info("Make sure you have a valid kaggle.json file in the correct location (~/.kaggle/kaggle.json).")
+        return pd.DataFrame() # Return empty dataframe to prevent later errors
 
-#Image matching
+# Image matching (using Kaggle dataset)
+@st.cache_data
+def load_images():
+    try:
+        api = KaggleApi()
+        api.authenticate()
+        dataset_path = 'athoye/coins-of-bengal'
+        download_path = 'data'
+        api.dataset_download_files(dataset_path, path=download_path, unzip=True, force=False, quiet=False)
+        images_folder = os.path.join(download_path, "Muslim Conquerors")
+        return match_images(images_folder)
+    except Exception as e:
+         st.error(f"Error downloading or unzipping image dataset: {e}")
+         return {}
+
 def match_images(images_folder):
     images_dict = {}
     if not os.path.exists(images_folder):
         st.error(f"Error: Image folder not found at: {images_folder}")
         return images_dict
-    
-    pattern = re.compile(r"(\d+\.\d+)[_\s-]*.*\.png$", re.IGNORECASE)
+
+    pattern = re.compile(r"(\d+\.\d+)[_\s-]*.*\.webp$", re.IGNORECASE)
     for filename in os.listdir(images_folder):
         match = pattern.match(filename)
         if match:
@@ -84,7 +163,7 @@ def match_images(images_folder):
             if coin_no not in images_dict:
                 images_dict[coin_no] = {"front": None, "back": None}
             lower_name = filename.lower()
-            if " re " in lower_name or lower_name.endswith(" re.png") or " re." in lower_name:
+            if " re " in lower_name or lower_name.endswith(" re.webp") or " re." in lower_name:
                 images_dict[coin_no]["back"] = os.path.join(images_folder, filename)
             else:
                 images_dict[coin_no]["front"] = os.path.join(images_folder, filename)
@@ -92,14 +171,14 @@ def match_images(images_folder):
 
 def sidebar_filters(df):
     st.sidebar.header("🔍 Filter Coins")
-    
-    if df is not None:
+
+    if df is not None and not df.empty:
         # Ruler filter with a dropdown
         selected_ruler = st.sidebar.selectbox("Select Ruler", ["All"] + sorted(df["Ruler (or Issuer)"].unique()))
-        
+
         # Metal filter with multiselect
         selected_metals = st.sidebar.multiselect("Select Metal", options=["All"] + sorted(df["Metal"].unique()), default=["All"])
-        
+
         # Improved Reign filter with a range slider
         reigns = sorted(df["Reign"].unique())
         if reigns:
@@ -114,7 +193,7 @@ def sidebar_filters(df):
                     max_value=max_year,
                     value=(min_year, max_year)
                 )
-        
+
         # Weight filter with a slider
         weight_range = st.sidebar.slider(
             "Select Weight Range (g)",
@@ -122,16 +201,16 @@ def sidebar_filters(df):
             max_value=float(df["Weight (g)"].max()),
             value=(0.0, float(df["Weight (g)"].max()))
         )
-        
+
         # Apply filters
         filtered_df = df.copy()
-        
+
         if selected_ruler != "All":
             filtered_df = filtered_df[filtered_df["Ruler (or Issuer)"] == selected_ruler]
-        
+
         if "All" not in selected_metals:
             filtered_df = filtered_df[filtered_df["Metal"].isin(selected_metals)]
-        
+
         # Apply reign filter
         if reigns and years:
             filtered_df = filtered_df[
@@ -142,16 +221,19 @@ def sidebar_filters(df):
 
         filtered_df = filtered_df[(filtered_df["Weight (g)"] >= weight_range[0]) & (filtered_df["Weight (g)"] <= weight_range[1])]
         return filtered_df
-    return None
+    return pd.DataFrame()  # Return empty dataframe if input df is empty
 
-#Display data
-def display_data(df, images_dict):
+# Display data
+def display_data(df):
     st.subheader("📜 Coin Database")
-    st.dataframe(df, use_container_width=True)
+    if df is not None and not df.empty:  # Check for empty DataFrame
+       st.dataframe(df, use_container_width=True)
+    else:
+        st.warning("No data available to display.")  # Display a warning
     st.markdown("---")
 
-#Visualizations
-def display_visualizations(df, images_dict):
+# Visualizations
+def display_visualizations(df):
     st.subheader("📊 Coin Data Insights")
 
     if df is not None and not df.empty:
@@ -233,7 +315,7 @@ def display_visualizations(df, images_dict):
     else:
         st.warning("No data to create visualizations")
 
-#Display coins with images
+# Display coins with images
 def display_coins_with_images(df, images_dict):
     st.subheader("🖼️ Coin Details with Images")
     if df is not None and not df.empty:
@@ -252,21 +334,57 @@ def display_coins_with_images(df, images_dict):
             back_path = images_dict.get(coin_no, {}).get("back")
 
             col1, col2 = st.columns(2)
+
+            # Image loading and display with error handling and optimization
             with col1:
-                if front_path and os.path.exists(front_path):
-                    st.image(front_path, caption=f"{coin_no} (Front)", use_container_width=True)
+                if front_path:
+                    try:
+                        img = Image.open(front_path)
+                        img.thumbnail((500, 500)) # Resize for faster loading
+                        st.image(img, caption=f"{coin_no} (Front)", use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Error loading front image: {e}")
                 else:
                     st.warning("Front image not found.")
+
             with col2:
-                if back_path and os.path.exists(back_path):
-                    st.image(back_path, caption=f"{coin_no} (Back)", use_container_width=True)
+                if back_path:
+                    try:
+                        img = Image.open(back_path)
+                        img.thumbnail((400, 400))  # Resize for faster loading
+                        st.image(img, caption=f"{coin_no} (Back)", use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Error loading back image: {e}")
                 else:
                     st.warning("Back image not found.")
+
             st.markdown("---")
     else:
         st.warning("No coins to display.")
 
-#Main function
+def test_kaggle_connection():
+    st.title("🔌 Kaggle Connection Test")
+
+    try:
+        # Initialize the Kaggle API
+        api = KaggleApi()
+        api.authenticate()
+
+        # Test connection by listing competitions
+        competitions = api.competitions_list()
+
+        st.success("✅ Successfully connected to Kaggle!")
+
+        # Display some data to verify
+        st.write("### Recent Kaggle Competitions:")
+        for comp in competitions[:5]:  # Show first 5 competitions
+            st.write(f"- {comp.title}")
+
+    except Exception as e:
+        st.error(f"❌ Failed to connect to Kaggle: {str(e)}")
+        st.info("Make sure you have kaggle.json in ~/.kaggle/ directory")
+
+# Main function
 def main():
     configure_app()
     st.title("🪙 Coins of Bengal, A Digital Coin Museum", anchor="center")
@@ -276,22 +394,30 @@ def main():
         "Home": landing_page,
         "Data": display_data,
         "Visualizations": display_visualizations,
-        "Coin Catalog": display_coins_with_images
+        "Coin Catalog": display_coins_with_images,
+        "Kaggle Connection Test": test_kaggle_connection
     }
 
     st.sidebar.title("🧭 Navigation")
     selection = st.sidebar.radio("⤵️ Go to", list(pages.keys()))
 
-    # Load data and images
-    df = load_data("coins.csv")
-    images_dict = match_images("Muslim Conquerors")
-    filtered_df = sidebar_filters(df)
+    # Load data and images (using Kaggle)
+    coins_df = load_data()
+    images_dict = load_images()
+    filtered_df = sidebar_filters(coins_df)
 
-    # Display selected page
+    # Display selected page, handling potential None/empty DataFrame
     if selection == "Home":
-        pages[selection]()
-    else:
-        pages[selection](filtered_df, images_dict)
+        pages[selection]()  # Landing page doesn't need data
+    elif selection in ["Data", "Visualizations", "Coin Catalog"]:
+        if not filtered_df.empty:  # Only pass data if it's not empty
+          pages[selection](filtered_df, images_dict)
+        else:
+          st.warning("No data available based on current filter selection.")
+          if selection == "Coin Catalog": #Need to account for empty dict too
+              st.warning("Ensure image directory has been downloaded.")
+    elif selection == "Kaggle Connection Test":
+        test_kaggle_connection()
 
 if __name__ == "__main__":
     main()
