@@ -4,7 +4,31 @@ import plotly.express as px
 import altair as alt
 import os
 import re
+import inspect
 import warnings
+
+# Streamlit deprecated `use_container_width` in favor of `width='stretch'`.
+def _streamlit_version_tuple(version: str) -> tuple[int, int, int]:
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)", version)
+    if not match:
+        return (0, 0, 0)
+    return tuple(int(part) for part in match.groups())
+
+
+_PREFER_WIDTH_STRETCH = _streamlit_version_tuple(getattr(st, "__version__", "0.0.0")) >= (1, 53, 0)
+
+
+def _container_width_kwargs(fn):
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return {}
+
+    if _PREFER_WIDTH_STRETCH and "width" in params:
+        return {"width": "stretch"}
+    if "use_container_width" in params:
+        return {"use_container_width": True}
+    return {}
 
 #Verbose Error Configuration
 def configure_app():
@@ -26,7 +50,7 @@ def landing_page(df=None, images_dict=None):
     for i, path in enumerate(image_paths):
         with cols[i]:
             try:
-                st.image(path, use_container_width=True)
+                st.image(path, **_container_width_kwargs(st.image))
             except FileNotFoundError:
                 st.error(f"Image not found at: {path}")
     st.markdown("<h2 style='text-align: center;'>Engineer Noorul Islam,<br>Proprietor of the actual museum and the private dataset</h2>", unsafe_allow_html=True)
@@ -188,7 +212,7 @@ def sidebar_filters(df):
 #Display data
 def display_data(df, images_dict):
     st.subheader("📜 Coin Database")
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, **_container_width_kwargs(st.dataframe))
     st.markdown("---")
 
 #Visualizations
@@ -209,7 +233,7 @@ def display_visualizations(df, images_dict):
             xaxis_title_font=dict(size=18),
             yaxis_title_font=dict(size=18)
         )
-        st.plotly_chart(fig1, use_container_width=True)
+        st.plotly_chart(fig1, **_container_width_kwargs(st.plotly_chart))
 
         fig2 = px.scatter(
             df, x="Weight (g)", y="Dimension (mm)", color="Metal",
@@ -224,7 +248,7 @@ def display_visualizations(df, images_dict):
             xaxis_title_font=dict(size=18),
             yaxis_title_font=dict(size=18)
         )
-        st.plotly_chart(fig2, use_container_width=True)
+        st.plotly_chart(fig2, **_container_width_kwargs(st.plotly_chart))
 
         alt_chart = alt.Chart(df).mark_bar().encode(
             x=alt.X("Metal:N", title="Metal Type"),
@@ -243,7 +267,7 @@ def display_visualizations(df, images_dict):
             titleFont="Arial",
             titleColor="black"
         )
-        st.altair_chart(alt_chart, use_container_width=True)
+        st.altair_chart(alt_chart, **_container_width_kwargs(st.altair_chart))
 
         # Count number of coins per ruler
         ruler_counts = df["Ruler (or Issuer)"].value_counts().reset_index()
@@ -295,12 +319,12 @@ def display_coins_with_images(df, images_dict):
             col1, col2 = st.columns(2)
             with col1:
                 if front_path and os.path.exists(front_path):
-                    st.image(front_path, caption=f"{coin_no} (Front)", use_container_width=True)
+                    st.image(front_path, caption=f"{coin_no} (Front)", **_container_width_kwargs(st.image))
                 else:
                     st.warning("Front image not found.")
             with col2:
                 if back_path and os.path.exists(back_path):
-                    st.image(back_path, caption=f"{coin_no} (Back)", use_container_width=True)
+                    st.image(back_path, caption=f"{coin_no} (Back)", **_container_width_kwargs(st.image))
                 else:
                     st.warning("Back image not found.")
             st.markdown("---")
