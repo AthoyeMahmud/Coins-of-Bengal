@@ -1,5 +1,5 @@
-numpy
-pandas
-streamlit
+streamlit>=1.30,<2
+altair>=5,<6
 plotly
-altair
+pandas
+numpy
