@@ -93,13 +93,17 @@ def load_data(csv_path):
             df[col].fillna(0, inplace=True)
 
         # Function to convert Arabic calendar years to Gregorian
-        def convert_to_gregorian(year):
-            if year < 1202:
-                return year + 622  # Approximate conversion
-            return year
+        def convert_to_gregorian(value):
+            text = str(value).strip()
+            if text.isdigit():
+                year = int(text)
+                if year < 1202:
+                    year += 622  # Approximate conversion
+                return str(year)
+            return text
 
-        # Apply the conversion to the "Date of Issue" column
-        df['Date of Issue'] = df['Date of Issue'].apply(lambda x: convert_to_gregorian(int(x)) if str(x).isdigit() else x)
+        # Normalize "Date of Issue" to a single, Arrow-friendly type
+        df["Date of Issue"] = df["Date of Issue"].apply(convert_to_gregorian).astype(str)
 
         return df
     except FileNotFoundError:
